@@ -64,8 +64,63 @@ void delete_record(Table *table, int id){
         printf("Record not found.\n");
         return;
     }
+    //here records[i+1] overwrites records[i]
     for (int i=index; i<table->size-1; i++){
         table->records[i] = table->records[i + 1];
     };
     table->size--
 }
+
+
+void parse_sql(Table *table, const char *sql){
+    char command[256];
+    strncpy(command, sql, sizeof(command));
+    command[sizeof(command)-1] = '\0';
+
+
+    //on the first call of strtok, everything before the space is returned as a token
+    //when you call strtok with NULL, it will return everything
+    //after the previous token up to the delimiter
+    //when it cant find the delimiter then it just returns the previous token
+
+    char *token = strtok(command, " ");
+     if (!token) {
+        printf("Invalid SQL command.\n");
+        return;
+    }
+
+    if(strcasecmp(token, "INSERT") == 0){
+        token = strtok(NULL, " "); // Skip "INTO"
+        if (!token || strcasecmp(token, "table") != 0) {
+            printf("Invalid INSERT syntax.\n");
+            return;
+        }
+        token = strtok(NULL, " "); // Skip "VALUES"
+        if (!token || strcasecmp(token, "VALUES") != 0) {
+            printf("Invalid INSERT syntax.\n");
+            return;
+        }
+        token = strtok(NULL, "("); // Start of values
+        int id, age;
+        char name[50];
+        if (sscanf(token, "%d, '%49[^']', %d", &id, name, &age) != 3) {
+            printf("Invalid INSERT values.\n");
+            return;
+        }
+
+        // Perform insertion
+        insert_record(table, id, name, age);
+        printf("Record inserted successfully.\n");
+
+    }
+
+    else if(strcasecmp(token, "SELECT") == 0){
+
+    }
+    else if(strcasecmp(token, "DELETE") == 0){
+        
+    }
+
+
+
+};
