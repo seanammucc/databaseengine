@@ -20,7 +20,6 @@ Table *create_table(int capacity){
 }
 
 //function to insert a new record
-
 void insert_record(Table *table, int id, const char *name, int age){
     if (table->size >= table->capacity){
         printf("Table is full\n");
@@ -72,55 +71,124 @@ void delete_record(Table *table, int id){
 }
 
 
-void parse_sql(Table *table, const char *sql){
+void parse_sql(Table *table, const char *sql) {
+    if (!sql || strlen(sql) == 0) {
+        printf("Empty SQL command.\n");
+        return;
+    }
+
     char command[256];
     strncpy(command, sql, sizeof(command));
-    command[sizeof(command)-1] = '\0';
-
-
-    //on the first call of strtok, everything before the space is returned as a token
-    //when you call strtok with NULL, it will return everything
-    //after the previous token up to the delimiter
-    //when it cant find the delimiter then it just returns the previous token
+    command[sizeof(command) - 1] = '\0'; // Ensure null-termination
 
     char *token = strtok(command, " ");
-     if (!token) {
+    if (!token) {
         printf("Invalid SQL command.\n");
         return;
     }
 
-    if(strcasecmp(token, "INSERT") == 0){
+    if (strcasecmp(token, "INSERT") == 0) {
         token = strtok(NULL, " "); // Skip "INTO"
-        if (!token || strcasecmp(token, "table") != 0) {
-            printf("Invalid INSERT syntax.\n");
+        if (!token || strcasecmp(token, "INTO") != 0) {
+            printf("Invalid INSERT syntax: missing 'INTO'.\n");
             return;
         }
+
+        token = strtok(NULL, " "); // Get table name
+        if (!token) {
+            printf("Invalid INSERT syntax: missing table name.\n");
+            return;
+        }
+        char *tableName = token;
+
         token = strtok(NULL, " "); // Skip "VALUES"
         if (!token || strcasecmp(token, "VALUES") != 0) {
-            printf("Invalid INSERT syntax.\n");
+            printf("Invalid INSERT syntax: missing 'VALUES'.\n");
             return;
         }
+
         token = strtok(NULL, "("); // Start of values
+        if (!token) {
+            printf("Invalid INSERT syntax: missing values.\n");
+            return;
+        }
+
         int id, age;
         char name[50];
-        if (sscanf(token, "%d, '%49[^']', %d", &id, name, &age) != 3) {
-            printf("Invalid INSERT values.\n");
+        if (sscanf(token, " %d, '%49[^']', %d", &id, name, &age) != 3) {
+            printf("Invalid INSERT values format.\n");
             return;
         }
 
-        // Perform insertion
         insert_record(table, id, name, age);
-        printf("Record inserted successfully.\n");
+        printf("Record inserted successfully into table '%s'.\n", tableName);
 
+    } else if (strcasecmp(token, "SELECT") == 0) {
+        token = strtok(NULL, " "); // Check for "*"
+        if (!token || strcmp(token, "*") != 0) {
+            printf("Invalid SELECT syntax: only '*' is supported currently.\n");
+            return;
+        }
+
+        token = strtok(NULL, " "); // Skip "FROM"
+        if (!token || strcasecmp(token, "FROM") != 0) {
+            printf("Invalid SELECT syntax: missing 'FROM'.\n");
+            return;
+        }
+
+        token = strtok(NULL, " "); // Get table name
+        if (!token) {
+            printf("Invalid SELECT syntax: missing table name.\n");
+            return;
+        }
+        char *tableName = token;
+
+        // Perform selection (currently just selects all records)
+        select_all(table);
+        printf("Selected all records from table '%s'.\n", tableName);
+
+    } else if (strcasecmp(token, "DELETE") == 0) {
+        token = strtok(NULL, " "); // Skip "FROM"
+        if (!token || strcasecmp(token, "FROM") != 0) {
+            printf("Invalid DELETE syntax: missing 'FROM'.\n");
+            return;
+        }
+
+        token = strtok(NULL, " "); // Get table name
+        if (!token) {
+            printf("Invalid DELETE syntax: missing table name.\n");
+            return;
+        }
+        char *tableName = token;
+
+        token = strtok(NULL, " "); // Skip "WHERE"
+        if (!token || strcasecmp(token, "WHERE") != 0) {
+            printf("Invalid DELETE syntax: missing 'WHERE'.\n");
+            return;
+        }
+
+        token = strtok(NULL, "="); // Get condition
+        if (!token || strcasecmp(token, "ID") != 0) {
+            printf("Invalid DELETE syntax: only 'ID=' condition is supported.\n");
+            return;
+        }
+
+        token = strtok(NULL, " "); // Get ID value
+        if (!token) {
+            printf("Invalid DELETE syntax: missing ID value.\n");
+            return;
+        }
+
+        int id;
+        if (sscanf(token, "%d", &id) != 1) {
+            printf("Invalid DELETE ID value format.\n");
+            return;
+        }
+
+        delete_record(table, id);
+        printf("Record with ID=%d deleted successfully from table '%s'.\n", id, tableName);
+
+    } else {
+        printf("Unsupported SQL command: %s\n", token);
     }
-
-    else if(strcasecmp(token, "SELECT") == 0){
-
-    }
-    else if(strcasecmp(token, "DELETE") == 0){
-        
-    }
-
-
-
 };
